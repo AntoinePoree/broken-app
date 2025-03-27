@@ -1,5 +1,11 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+
+
+export interface PerformanceExercise {
+  id: number,
+  value: number 
+}
 
 @Component({
   selector: 'app-performance-exercise',
@@ -17,13 +23,13 @@ import { CommonModule } from '@angular/common';
       </div>
 
       <div class="results">
-        @if (calculating) {
+        @if (calculating()) {
           <div class="loading-spinner"></div>
         }
         
-        @if (results.length > 0) {
+        @if (results().length > 0) {
           <div class="data-grid">
-            @for (result of results; track result.id) {
+            @for (result of results(); track result.id) {
               <div class="grid-item">
                 {{ result.value }}
               </div>
@@ -55,31 +61,30 @@ import { CommonModule } from '@angular/common';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PerformanceExerciseComponent {
-  calculating = false;
-  results: Array<{id: number, value: number}> = [];
-
-  startHeavyCalculation() {
-    this.calculating = true;
+  calculating = signal(false);
+  results = signal<PerformanceExercise[]>([]);
+  
+ startHeavyCalculation() {
+    this.calculating.set(true);
     const data = Array.from({ length: 1000 }, (_, i) => i);
 
     if (typeof Worker !== 'undefined') {
       const worker = new Worker(new URL('./performance.worker.ts', import.meta.url));
       
       worker.onmessage = ({ data }) => {
-        this.results = data;
-        this.calculating = false;
+        this.results.set(data);
+        this.calculating.set(false);
         worker.terminate();
       };
 
       worker.postMessage(data);
     } else {
-      // Fallback pour les environnements sans Web Workers
-      this.results = this.heavyCalculation(data);
-      this.calculating = false;
+      this.results.set(this.heavyCalculation(data));
+      this.calculating.set(false);
     }
   }
 
-  private heavyCalculation(data: number[]): Array<{id: number, value: number}> {
+  private heavyCalculation(data: number[]): PerformanceExercise[] {
     return data.map((n, id) => {
       let value = n;
       for (let i = 0; i < 1000000; i++) {
