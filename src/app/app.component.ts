@@ -20,10 +20,10 @@ import { RxjsExerciseComponent } from './exercises/rxjs-exercise/rxjs-exercise.c
         Ce test technique comporte trois exercices pour évaluer vos compétences
         en Angular. Temps estimé : 45 minutes.
       </p>
-
-      <!-- <app-modal-exercise />
+      
+      <app-modal-exercise />
       <app-rxjs-exercise />
-      <app-performance-exercise /> -->
+      <app-performance-exercise /> 
     </div>
   `,
   styles: [
