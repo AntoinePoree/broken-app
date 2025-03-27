@@ -48,8 +48,8 @@ import { DataService } from './data.service';
   `]
 })
 export class RxjsExerciseComponent {
-  private dataService = inject(DataService);
-  users = this.dataService.users;
+  private readonly dataService = inject(DataService);
+  public users = this.dataService.users;
 
   updateUserScore(userId: number) {
     const newScore = Math.floor(Math.random() * 1000);

@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
-import { DestroyRef, Injectable, inject, signal } from '@angular/core';
-import { Observable, interval } from 'rxjs';
-import { map, shareReplay, tap } from 'rxjs/operators';
+import { DestroyRef, Injectable, computed, inject } from '@angular/core';
+import { Observable} from 'rxjs';
+import { distinctUntilChanged, map } from 'rxjs/operators';
+import { rxResource } from '@angular/core/rxjs-interop';
 
 export interface User {
   id: number;
@@ -13,36 +14,25 @@ export interface User {
   providedIn: 'root',
 })
 export class DataService {
-  private destroyRef = inject(DestroyRef);
-  private cache$: Observable<User[]>;
+  private readonly http = inject(HttpClient);
+  private readonly destroyRef = inject(DestroyRef);
 
-  users = signal<User[]>([]);
+  public users = computed(() => this._users.value() ?? []);
 
-  constructor(private http: HttpClient) {
-    this.cache$ = this.http.get<User[]>('https://api.example.com/users').pipe(
-      map((users) => users.sort((a, b) => b.score - a.score)),
-      shareReplay({ bufferSize: 1, refCount: true })
+  private _users = rxResource<User[], User[]>({
+    loader: () => this.fetchUsers().pipe(distinctUntilChanged()),
+});
+
+  private fetchUsers(): Observable<User[]> {
+    // TODO: bring a real api
+    return this.http.get<User[]>('https://api.example.com/users').pipe(
+      map((users) => users.sort((a, b) => b.score - a.score)) // Trie par score
     );
-
-    // Mise à jour automatique toutes les 5 secondes
-    interval(5000)
-      .pipe(
-        tap(() => this.loadUsers())
-        // takeUntil(this.destroyRef.onDestroy)
-      )
-      .subscribe();
-
-    // Chargement initial
-    this.loadUsers().subscribe((users) => this.users.set(users));
-  }
-
-  loadUsers(): Observable<User[]> {
-    return this.cache$;
   }
 
   updateScore(userId: number, newScore: number): void {
-    this.users.update((users) =>
-      users.map((user) =>
+    this._users.update((users) =>
+      users?.map((user) =>
         user.id === userId ? { ...user, score: newScore } : user
       )
     );
